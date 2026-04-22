@@ -1,0 +1,2016 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Open PDF Reader</title>
+    <meta
+      name="description"
+      content="Open PDF Reader is a free PDF editor and reader with signature support, local file privacy, and no watermarks."
+    />
+    <link rel="icon" type="image/svg+xml" href="./assets/app-icon.svg" />
+    <style>
+      :root {
+        --bg: #fffaf7;
+        --surface: rgba(255, 255, 255, 0.82);
+        --surface-strong: #ffffff;
+        --surface-soft: #fff4ef;
+        --paper: #fff0ea;
+        --ink: #181311;
+        --muted: #6f5b55;
+        --line: rgba(112, 78, 70, 0.14);
+        --accent: #b91c1c;
+        --accent-strong: #8f1616;
+        --accent-soft: rgba(185, 28, 28, 0.1);
+        --accent-glow: rgba(185, 28, 28, 0.18);
+        --dark: #1d1715;
+        --dark-soft: #2f2420;
+        --success: #147c67;
+        --radius-xl: 32px;
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --shadow-lg: 0 30px 80px -30px rgba(91, 43, 32, 0.32);
+        --shadow-md: 0 20px 48px -26px rgba(124, 48, 34, 0.22);
+        --shadow-sm: 0 14px 30px -20px rgba(62, 34, 27, 0.18);
+        --container: min(1160px, calc(100vw - 32px));
+        --nav-height: 88px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Avenir Next", "Avenir", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(255, 204, 188, 0.35), transparent 34%),
+          radial-gradient(circle at top right, rgba(255, 235, 210, 0.5), transparent 24%),
+          linear-gradient(180deg, #fffaf7 0%, #fffdfa 52%, #fff6f1 100%);
+        min-width: 320px;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(185, 28, 28, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(185, 28, 28, 0.025) 1px, transparent 1px);
+        background-size: 32px 32px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.42), transparent 72%);
+        pointer-events: none;
+        z-index: -2;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      select {
+        font: inherit;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      .container {
+        width: var(--container);
+        margin: 0 auto;
+      }
+
+      .site-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 40;
+        padding: 18px 0;
+        transition: background-color 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+      }
+
+      .site-nav.is-scrolled {
+        padding: 12px 0;
+        background: rgba(255, 250, 247, 0.82);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 10px 30px -24px rgba(58, 31, 24, 0.75);
+      }
+
+      .nav-shell {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 0 4px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .brand-copy {
+        min-width: 0;
+      }
+
+      .brand-name {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+
+      .brand-tag {
+        margin: 6px 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .nav-links {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.65);
+      }
+
+      .nav-links a {
+        padding: 10px 16px;
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        font-weight: 700;
+        transition: color 0.2s ease, background-color 0.2s ease;
+      }
+
+      .nav-links a:hover,
+      .nav-links a:focus-visible {
+        color: var(--accent);
+        background: rgba(185, 28, 28, 0.08);
+        outline: none;
+      }
+
+      .nav-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .lang-switch {
+        position: relative;
+      }
+
+      .lang-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+        cursor: pointer;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      }
+
+      .lang-button:hover,
+      .lang-button:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+        border-color: rgba(185, 28, 28, 0.25);
+        outline: none;
+      }
+
+      .lang-icon,
+      .button-icon,
+      .feature-icon svg,
+      .contact-badge svg,
+      .social-pill svg,
+      .stat-stars svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+
+      .lang-menu {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        display: grid;
+        gap: 6px;
+        min-width: 168px;
+        padding: 10px;
+        border-radius: 20px;
+        border: 1px solid rgba(112, 78, 70, 0.15);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--shadow-md);
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+
+      .lang-switch.is-open .lang-menu {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      .lang-option {
+        width: 100%;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 14px;
+        background: transparent;
+        color: var(--ink);
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.18s ease, color 0.18s ease;
+      }
+
+      .lang-option:hover,
+      .lang-option.is-active {
+        background: rgba(185, 28, 28, 0.08);
+        color: var(--accent);
+      }
+
+      .nav-download {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 18px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: white;
+        font-weight: 800;
+        box-shadow: 0 16px 36px -18px rgba(185, 28, 28, 0.78);
+        transition: transform 0.18s ease, background-color 0.18s ease;
+      }
+
+      .nav-download:hover,
+      .nav-download:focus-visible,
+      .button-primary:hover,
+      .button-primary:focus-visible,
+      .button-light:hover,
+      .button-light:focus-visible,
+      .secondary-action:hover,
+      .secondary-action:focus-visible {
+        transform: translateY(-2px);
+        outline: none;
+      }
+
+      .nav-download:hover,
+      .nav-download:focus-visible,
+      .button-primary:hover,
+      .button-primary:focus-visible {
+        background: var(--accent-strong);
+      }
+
+      main {
+        overflow: hidden;
+      }
+
+      .hero {
+        position: relative;
+        padding: calc(var(--nav-height) + 52px) 0 72px;
+      }
+
+      .hero::before,
+      .hero::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(10px);
+        z-index: -1;
+      }
+
+      .hero::before {
+        width: 280px;
+        height: 280px;
+        top: 80px;
+        left: -40px;
+        background: radial-gradient(circle, rgba(255, 194, 163, 0.68), transparent 68%);
+      }
+
+      .hero::after {
+        width: 420px;
+        height: 420px;
+        right: -120px;
+        bottom: 20px;
+        background: radial-gradient(circle, rgba(185, 28, 28, 0.15), transparent 70%);
+      }
+
+      .hero-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.98fr);
+        gap: 48px;
+        align-items: center;
+      }
+
+      .hero-copy {
+        max-width: 580px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(185, 28, 28, 0.12);
+        box-shadow: var(--shadow-sm);
+        color: var(--accent);
+        font-size: 0.88rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 6px rgba(20, 124, 103, 0.12);
+      }
+
+      .hero-title {
+        margin: 22px 0 0;
+        font-family: "Avenir Next Condensed", "Avenir Next", "Futura", "Trebuchet MS", "PingFang SC", sans-serif;
+        font-size: clamp(3rem, 6vw, 6.4rem);
+        line-height: 0.96;
+        letter-spacing: -0.06em;
+      }
+
+      .hero-title-accent {
+        display: inline-block;
+        color: var(--accent);
+      }
+
+      .hero-subtitle {
+        margin: 22px 0 0;
+        font-size: clamp(1.08rem, 2vw, 1.42rem);
+        line-height: 1.7;
+        color: var(--muted);
+        max-width: 48ch;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 32px;
+      }
+
+      .button-primary,
+      .secondary-action,
+      .button-light {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px 24px;
+        border-radius: 18px;
+        font-size: 1rem;
+        font-weight: 800;
+        border: 1px solid transparent;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+      }
+
+      .button-primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 18px 40px -20px rgba(185, 28, 28, 0.7);
+      }
+
+      .secondary-action {
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+        border-color: rgba(112, 78, 70, 0.16);
+      }
+
+      .secondary-action:hover,
+      .secondary-action:focus-visible {
+        border-color: rgba(185, 28, 28, 0.25);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .hero-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px 28px;
+        align-items: center;
+        margin-top: 42px;
+      }
+
+      .avatar-stack {
+        display: flex;
+        align-items: center;
+        padding-left: 14px;
+      }
+
+      .avatar-stack img {
+        width: 56px;
+        height: 56px;
+        margin-left: -14px;
+        border-radius: 50%;
+        border: 4px solid rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stat-card {
+        padding: 18px 20px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(112, 78, 70, 0.12);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stat-stars {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #e59b00;
+      }
+
+      .stat-score {
+        margin-left: 10px;
+        color: var(--ink);
+        font-size: 1.2rem;
+        font-weight: 800;
+      }
+
+      .stat-text {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 700;
+      }
+
+      .hero-stage {
+        position: relative;
+      }
+
+      .hero-panel {
+        position: relative;
+        padding: 22px;
+        border-radius: 38px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 247, 242, 0.96)),
+          radial-gradient(circle at 100% 0%, rgba(185, 28, 28, 0.08), transparent 28%);
+        border: 1px solid rgba(112, 78, 70, 0.14);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .hero-panel::before {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border-radius: 28px;
+        border: 1px dashed rgba(185, 28, 28, 0.16);
+        pointer-events: none;
+      }
+
+      .hero-preview {
+        width: 100%;
+        border-radius: 28px;
+      }
+
+      .floating-chip {
+        position: absolute;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(112, 78, 70, 0.12);
+        box-shadow: var(--shadow-md);
+        color: var(--ink);
+        font-weight: 800;
+        backdrop-filter: blur(14px);
+        animation: drift 6.2s ease-in-out infinite;
+      }
+
+      .floating-chip small {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .chip-left {
+        left: -32px;
+        bottom: 68px;
+      }
+
+      .chip-right {
+        top: 56px;
+        right: -26px;
+        animation-delay: 1.4s;
+      }
+
+      .chip-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        background: rgba(185, 28, 28, 0.08);
+        color: var(--accent);
+      }
+
+      .section {
+        padding: 80px 0;
+      }
+
+      .section-header {
+        max-width: 700px;
+        margin: 0 auto 48px;
+        text-align: center;
+      }
+
+      .section-kicker {
+        display: inline-block;
+        margin-bottom: 12px;
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      .section-subtitle {
+        margin: 16px auto 0;
+        color: var(--muted);
+        font-size: 1.04rem;
+        line-height: 1.75;
+        max-width: 58ch;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .feature-card {
+        position: relative;
+        padding: 28px;
+        border-radius: 28px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 248, 245, 0.94));
+        border: 1px solid rgba(112, 78, 70, 0.12);
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      }
+
+      .feature-card:hover,
+      .feature-card:focus-within {
+        transform: translateY(-6px);
+        border-color: rgba(185, 28, 28, 0.2);
+        box-shadow: var(--shadow-md);
+      }
+
+      .feature-card::after {
+        content: "";
+        position: absolute;
+        inset: auto 22px 0;
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, rgba(185, 28, 28, 0.18), transparent);
+      }
+
+      .feature-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        border-radius: 18px;
+        background: rgba(185, 28, 28, 0.08);
+        color: var(--accent);
+      }
+
+      .feature-title {
+        margin: 0;
+        font-size: 1.18rem;
+        line-height: 1.25;
+      }
+
+      .feature-description {
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .workflow {
+        position: relative;
+        color: white;
+        background:
+          radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 24%),
+          linear-gradient(135deg, #7f1d1d 0%, #991b1b 45%, #b91c1c 100%);
+      }
+
+      .workflow::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(120deg, transparent 0 60%, rgba(255, 255, 255, 0.08) 60% 66%, transparent 66% 100%);
+        pointer-events: none;
+      }
+
+      .workflow .section-subtitle {
+        color: rgba(255, 243, 238, 0.86);
+      }
+
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .step-card {
+        position: relative;
+        padding: 30px 28px;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(8px);
+      }
+
+      .step-number {
+        width: 62px;
+        height: 62px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 1.35rem;
+        font-weight: 900;
+      }
+
+      .step-title {
+        margin: 18px 0 0;
+        font-size: 1.36rem;
+      }
+
+      .step-description {
+        margin: 12px 0 0;
+        color: rgba(255, 243, 238, 0.78);
+        line-height: 1.72;
+      }
+
+      .faq-shell {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+
+      .faq-list {
+        display: grid;
+        gap: 14px;
+        max-width: 860px;
+        margin: 0 auto;
+      }
+
+      .faq-item {
+        border-radius: 24px;
+        border: 1px solid rgba(112, 78, 70, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .faq-item summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 24px 26px;
+        font-size: 1.05rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .faq-item summary::after {
+        content: "+";
+        width: 36px;
+        height: 36px;
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(185, 28, 28, 0.08);
+        color: var(--accent);
+        font-size: 1.4rem;
+        transition: transform 0.22s ease, background-color 0.22s ease;
+      }
+
+      .faq-item[open] summary {
+        color: var(--accent);
+      }
+
+      .faq-item[open] summary::after {
+        transform: rotate(45deg);
+        background: rgba(185, 28, 28, 0.14);
+      }
+
+      .faq-answer {
+        padding: 0 26px 24px;
+        color: var(--muted);
+        line-height: 1.75;
+      }
+
+      .cta {
+        padding: 18px 0 92px;
+      }
+
+      .cta-shell {
+        position: relative;
+        overflow: hidden;
+        padding: 44px 44px 46px;
+        border-radius: 40px;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 22%),
+          linear-gradient(135deg, #991b1b 0%, #b91c1c 46%, #dc2626 100%);
+        color: white;
+        box-shadow: 0 40px 90px -34px rgba(127, 29, 29, 0.6);
+      }
+
+      .cta-shell::before {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        pointer-events: none;
+      }
+
+      .cta-layout {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+      }
+
+      .cta-title {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 4rem);
+        line-height: 1.02;
+        letter-spacing: -0.05em;
+      }
+
+      .cta-copy {
+        margin: 14px 0 0;
+        font-size: 1.08rem;
+        line-height: 1.75;
+        color: rgba(255, 244, 239, 0.92);
+        max-width: 50ch;
+      }
+
+      .button-light {
+        color: var(--accent);
+        background: white;
+        box-shadow: 0 20px 38px -24px rgba(255, 255, 255, 0.88);
+      }
+
+      .footer {
+        position: relative;
+        padding: 84px 0 34px;
+        color: rgba(255, 241, 236, 0.74);
+        background:
+          radial-gradient(circle at top left, rgba(255, 143, 114, 0.18), transparent 26%),
+          linear-gradient(180deg, #241b18 0%, #171210 100%);
+      }
+
+      .footer-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 0.7fr));
+        gap: 26px;
+      }
+
+      .footer-brand {
+        max-width: 380px;
+      }
+
+      .footer-brand .brand {
+        margin-bottom: 20px;
+      }
+
+      .footer-description {
+        margin: 0;
+        line-height: 1.8;
+      }
+
+      .footer-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .social-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: white;
+        font-weight: 700;
+        transition: background-color 0.18s ease, transform 0.18s ease;
+      }
+
+      .social-pill:hover,
+      .social-pill:focus-visible {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.12);
+        outline: none;
+      }
+
+      .footer-column h4 {
+        margin: 0 0 18px;
+        color: white;
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .footer-column ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      .footer-column a {
+        color: rgba(255, 241, 236, 0.74);
+        transition: color 0.18s ease;
+      }
+
+      .footer-column a:hover,
+      .footer-column a:focus-visible {
+        color: white;
+        outline: none;
+      }
+
+      .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        margin-top: 38px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 0.92rem;
+      }
+
+      .footer-tagline {
+        opacity: 0.55;
+        text-align: right;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity 0.58s ease, transform 0.58s ease;
+      }
+
+      .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .mobile-nav {
+        display: none;
+      }
+
+      .mobile-links {
+        display: none;
+      }
+
+      .mobile-toggle {
+        width: 48px;
+        height: 48px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @keyframes drift {
+        0%,
+        100% {
+          transform: translate3d(0, 0, 0);
+        }
+        50% {
+          transform: translate3d(0, -10px, 0);
+        }
+      }
+
+      @media (max-width: 1100px) {
+        .nav-links {
+          display: none;
+        }
+
+        .mobile-toggle {
+          display: inline-flex;
+        }
+
+        .hero-shell,
+        .cta-layout,
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-copy,
+        .footer-brand {
+          max-width: none;
+        }
+
+        .hero-stage {
+          order: -1;
+        }
+
+        .chip-left {
+          left: 12px;
+          bottom: -18px;
+        }
+
+        .chip-right {
+          right: 12px;
+          top: -16px;
+        }
+
+        .features-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .steps-grid {
+          grid-template-columns: 1fr;
+        }
+
+      }
+
+      @media (max-width: 760px) {
+        :root {
+          --container: min(100vw - 24px, 720px);
+          --nav-height: 78px;
+        }
+
+        .site-nav {
+          padding: 12px 0;
+        }
+
+        .brand-tag,
+        .nav-download {
+          display: none;
+        }
+
+        .mobile-nav {
+          display: block;
+        }
+
+        .mobile-links {
+          display: grid;
+          gap: 8px;
+          margin-top: 12px;
+          padding: 12px;
+          border-radius: 24px;
+          border: 1px solid var(--line);
+          background: rgba(255, 255, 255, 0.88);
+          box-shadow: var(--shadow-sm);
+          opacity: 0;
+          transform: translateY(-8px);
+          pointer-events: none;
+          transition: opacity 0.22s ease, transform 0.22s ease;
+        }
+
+        .mobile-nav.is-open .mobile-links {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+
+        .mobile-links a {
+          padding: 13px 14px;
+          border-radius: 16px;
+          color: var(--muted);
+          font-weight: 700;
+          background: rgba(255, 248, 245, 0.62);
+        }
+
+        .hero {
+          padding-top: calc(var(--nav-height) + 26px);
+        }
+
+        .hero-panel {
+          padding: 14px;
+          border-radius: 28px;
+        }
+
+        .floating-chip {
+          position: static;
+          margin-top: 14px;
+          width: 100%;
+          animation: none;
+        }
+
+        .hero-actions,
+        .hero-metrics,
+        .footer-actions,
+        .cta-layout {
+          align-items: stretch;
+        }
+
+        .button-primary,
+        .secondary-action,
+        .button-light {
+          width: 100%;
+        }
+
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .cta-shell {
+          padding: 30px 24px;
+          border-radius: 32px;
+        }
+
+        .footer-bottom {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .footer-tagline {
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav" id="site-nav">
+      <div class="container">
+        <div class="nav-shell">
+          <a class="brand" href="#hero" aria-label="Open PDF Reader">
+            <img src="./assets/app-icon.svg" alt="Open PDF Reader logo" />
+            <div class="brand-copy">
+              <p class="brand-name">Open PDF Reader</p>
+              <p class="brand-tag" id="nav-brand-tag">Static landing page</p>
+            </div>
+          </a>
+
+          <div class="nav-links" id="desktop-links">
+            <a href="#features" data-nav-index="0">Features</a>
+            <a href="#how-it-works" data-nav-index="1">How It Works</a>
+            <a href="#faq" data-nav-index="2">FAQ</a>
+            <a href="#download" data-nav-index="3">Download</a>
+          </div>
+
+          <div class="nav-actions">
+            <div class="lang-switch" id="lang-switch">
+              <button class="lang-button" id="lang-button" type="button" aria-haspopup="true" aria-expanded="false">
+                <svg class="lang-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21M12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21M12 3C14.2091 5.43158 15.4647 8.57982 15.54 12C15.4647 15.4202 14.2091 18.5684 12 21M12 3C9.79086 5.43158 8.53531 8.57982 8.46 12C8.53531 15.4202 9.79086 18.5684 12 21M4 9H20M4 15H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="current-language">English</span>
+                <svg class="lang-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="lang-menu" id="lang-menu" role="menu" aria-labelledby="lang-button">
+                <button class="lang-option is-active" type="button" data-lang="English">English</button>
+                <button class="lang-option" type="button" data-lang="Español">Español</button>
+                <button class="lang-option" type="button" data-lang="Français">Français</button>
+                <button class="lang-option" type="button" data-lang="中文">中文</button>
+                <button class="lang-option" type="button" data-lang="日本語">日本語</button>
+              </div>
+            </div>
+
+            <a class="nav-download" href="https://play.google.com/store/apps/details?id=com.grhythm.pdf.reader" target="_blank" rel="noreferrer" id="nav-download-button">
+              <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3V15M12 15L7 10M12 15L17 10M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span id="nav-download-text">Download</span>
+            </a>
+
+            <div class="mobile-nav" id="mobile-nav">
+              <button class="mobile-toggle" id="mobile-toggle" type="button" aria-expanded="false" aria-controls="mobile-links">
+                <span class="sr-only">Toggle navigation</span>
+                <svg class="lang-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <div class="mobile-links" id="mobile-links">
+                <a href="#features" data-mobile-nav-index="0">Features</a>
+                <a href="#how-it-works" data-mobile-nav-index="1">How It Works</a>
+                <a href="#faq" data-mobile-nav-index="2">FAQ</a>
+                <a href="#download" data-mobile-nav-index="3">Download</a>
+                <a href="https://play.google.com/store/apps/details?id=com.grhythm.pdf.reader" target="_blank" rel="noreferrer" id="mobile-download-link">Download</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero reveal is-visible" id="hero">
+        <div class="container hero-shell">
+          <div class="hero-copy">
+            <div class="eyebrow">
+              <span class="eyebrow-dot" aria-hidden="true"></span>
+              <span id="hero-eyebrow">100% free • no watermarks</span>
+            </div>
+            <h1 class="hero-title">
+              <span id="hero-title-main">Free PDF Editor</span><br />
+              <span class="hero-title-accent" id="hero-title-accent">&amp; Reader</span>
+            </h1>
+            <p class="hero-subtitle" id="hero-subtitle">
+              100% Free — Edit, sign, view and manage PDF files with no watermarks or limitations.
+            </p>
+
+            <div class="hero-actions">
+              <a class="button-primary" href="https://play.google.com/store/apps/details?id=com.grhythm.pdf.reader" target="_blank" rel="noreferrer" id="hero-download-button">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 3V15M12 15L7 10M12 15L17 10M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="hero-download-text">Download</span>
+              </a>
+              <a class="secondary-action" href="#features" id="hero-secondary-button">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 5L19 9V15L12 19L5 15V9L12 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M12 12L19 9M12 12L5 9M12 12V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="hero-secondary-text">Features</span>
+              </a>
+            </div>
+
+            <div class="hero-metrics">
+              <div class="avatar-stack" aria-label="User avatars">
+                <img src="./assets/avatar-01.svg" alt="User avatar 1" />
+                <img src="./assets/avatar-02.svg" alt="User avatar 2" />
+                <img src="./assets/avatar-03.svg" alt="User avatar 3" />
+                <img src="./assets/avatar-04.svg" alt="User avatar 4" />
+                <img src="./assets/avatar-05.svg" alt="User avatar 5" />
+              </div>
+              <div class="stat-card">
+                <div class="stat-stars" aria-label="Rating 4.8 out of 5">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8L14.85 8.57L21.22 9.5L16.61 14L17.7 20.35L12 17.35L6.3 20.35L7.39 14L2.78 9.5L9.15 8.57L12 2.8Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8L14.85 8.57L21.22 9.5L16.61 14L17.7 20.35L12 17.35L6.3 20.35L7.39 14L2.78 9.5L9.15 8.57L12 2.8Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8L14.85 8.57L21.22 9.5L16.61 14L17.7 20.35L12 17.35L6.3 20.35L7.39 14L2.78 9.5L9.15 8.57L12 2.8Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8L14.85 8.57L21.22 9.5L16.61 14L17.7 20.35L12 17.35L6.3 20.35L7.39 14L2.78 9.5L9.15 8.57L12 2.8Z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8L14.85 8.57L21.22 9.5L16.61 14L17.7 20.35L12 17.35V2.8Z"/><path d="M12 2.8V17.35L6.3 20.35L7.39 14L2.78 9.5L9.15 8.57L12 2.8Z" fill="rgba(229,155,0,0.24)"/></svg>
+                  <span class="stat-score">4.8/5</span>
+                </div>
+                <p class="stat-text" id="hero-users-text">From 10,000+ satisfied users</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-stage">
+            <div class="hero-panel">
+              <img class="hero-preview" src="./assets/hero-preview.svg" alt="Open PDF Reader interface preview" />
+            </div>
+            <div class="floating-chip chip-left">
+              <span class="chip-icon" aria-hidden="true">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 13L10.2 16L17 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span>
+                <span id="chip-left-title">No watermarks</span>
+                <small id="chip-left-subtitle">Export clean files instantly</small>
+              </span>
+            </div>
+            <div class="floating-chip chip-right">
+              <span class="chip-icon" aria-hidden="true">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 4H14L19 9V20H7V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                  <path d="M14 4V9H19" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span>
+                <span id="chip-right-title">Edit, sign, share</span>
+                <small id="chip-right-subtitle">One clean workflow for PDF tasks</small>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reveal" id="features">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-kicker">Toolset</span>
+            <h2 class="section-title" id="features-title">Powerful PDF Tools</h2>
+            <p class="section-subtitle" id="features-subtitle">
+              All the features you need to work with PDF files, completely free.
+            </p>
+          </div>
+
+          <div class="features-grid" id="features-grid"></div>
+        </div>
+      </section>
+
+      <section class="section workflow reveal" id="how-it-works">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-kicker" style="color: rgba(255, 234, 227, 0.86)">Workflow</span>
+            <h2 class="section-title" id="how-title">How It Works</h2>
+            <p class="section-subtitle" id="how-subtitle">Simple steps to start working with PDF files</p>
+          </div>
+
+          <div class="steps-grid" id="steps-grid"></div>
+        </div>
+      </section>
+
+      <section class="section reveal" id="faq">
+        <div class="container faq-shell">
+          <div class="section-header">
+            <span class="section-kicker">Support</span>
+            <h2 class="section-title" id="faq-title">Frequently Asked Questions</h2>
+            <p class="section-subtitle" id="faq-subtitle">
+              Find answers to common questions about Open PDF Reader
+            </p>
+          </div>
+          <div class="faq-list" id="faq-list"></div>
+        </div>
+      </section>
+
+      <section class="cta reveal" id="download">
+        <div class="container">
+          <div class="cta-shell">
+            <div class="cta-layout">
+              <div>
+                <h2 class="cta-title" id="cta-title">Download Open PDF Reader Today</h2>
+                <p class="cta-copy" id="cta-subtitle">
+                  100% free, minimal ads, no watermarks. Start editing and managing your PDF files now.
+                </p>
+              </div>
+              <a class="button-light" href="https://play.google.com/store/apps/details?id=com.grhythm.pdf.reader" target="_blank" rel="noreferrer" id="cta-button">
+                <svg class="button-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 3V15M12 15L7 10M12 15L17 10M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="cta-button-text">Download</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div class="brand">
+              <img src="./assets/app-icon.svg" alt="Open PDF Reader logo" />
+              <div class="brand-copy">
+                <p class="brand-name">Open PDF Reader</p>
+                <p class="brand-tag" id="footer-brand-tag">Free editor and reader</p>
+              </div>
+            </div>
+            <p class="footer-description" id="footer-description">
+              Free PDF editor and reader with signature support. Edit, sign, view and manage PDF files easily.
+            </p>
+            <div class="footer-actions">
+              <a class="social-pill" href="https://play.google.com/store/apps/details?id=com.grhythm.pdf.reader" target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 4L18 12L5 20V4Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+                </svg>
+                <span>Google Play</span>
+              </a>
+              <a class="social-pill" href="mailto:yuanchong1990@gmail.com">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 7H20V17H4V7Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+                  <path d="M5 8L12 13L19 8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Email</span>
+              </a>
+              <a class="social-pill" href="tel:+8613141305934">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6.7 4.2H10.4L12.2 8.7L9.9 10.5C10.9 12.5 12.5 14.1 14.5 15.1L16.3 12.8L20.8 14.6V18.3C20.8 19.1 20.1 19.8 19.3 19.8C11.6 19.3 4.7 12.4 4.2 4.7C4.2 3.9 4.9 3.2 5.7 3.2H6.7V4.2Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Phone</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="footer-column">
+            <h4 id="footer-quick-title">Quick Links</h4>
+            <ul>
+              <li><a href="#features" data-footer-quick-index="0">Features</a></li>
+              <li><a href="#how-it-works" data-footer-quick-index="1">How It Works</a></li>
+              <li><a href="#faq" data-footer-quick-index="2">FAQ</a></li>
+              <li><a href="#download" data-footer-quick-index="3">Download</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-column">
+            <h4 id="footer-support-title">Support</h4>
+            <ul id="footer-support-list">
+              <li><a href="#">Help Center</a></li>
+              <li><a href="#">Privacy Policy</a></li>
+              <li><a href="#">Terms of Service</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-column">
+            <h4 id="footer-contact-title">Contact Us</h4>
+            <ul>
+              <li><a href="mailto:yuanchong1990@gmail.com">yuanchong1990@gmail.com</a></li>
+              <li><a href="tel:+8613141305934">+86 131 4130 5934</a></li>
+              <li><a href="https://play.google.com/store/apps/details?id=com.grhythm.pdf.reader" target="_blank" rel="noreferrer" id="footer-contact-app">Android download</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p id="footer-copyright">© 2026 Open PDF Reader. All rights reserved.</p>
+          <p class="footer-tagline" id="footer-tagline">
+            Designed with care for researchers, students, and professionals worldwide.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const TRANSLATIONS = {
+        English: {
+          nav: { lang: "English", tag: "Static landing page" },
+          hero: {
+            eyebrow: "100% free • no watermarks",
+            title: "Free PDF Editor",
+            titleAccent: "& Reader",
+            subtitle: "100% Free — Edit, sign, view and manage PDF files with no watermarks or limitations.",
+            download: "Download",
+            secondary: "Features",
+            users: "From 10,000+ satisfied users",
+            chips: {
+              leftTitle: "No watermarks",
+              leftSubtitle: "Export clean files instantly",
+              rightTitle: "Edit, sign, share",
+              rightSubtitle: "One clean workflow for PDF tasks"
+            }
+          },
+          features: {
+            title: "Powerful PDF Tools",
+            subtitle: "All the features you need to work with PDF files, completely free.",
+            items: [
+              { title: "Free PDF Editor", description: "Edit text, images, and pages in your PDF files with our intuitive editor - 100% free." },
+              { title: "Free PDF Signature", description: "Add digital signatures to your PDF documents quickly and securely - no cost." },
+              { title: "PDF Viewer", description: "View PDF files with smooth scrolling and advanced navigation features." },
+              { title: "PDF Manager", description: "Organize your PDF files with folders, tags, and search functionality." },
+              { title: "PDF Converter", description: "Convert PDF files to other formats and vice versa with high quality." },
+              { title: "Easy Sharing", description: "Share PDF files via email, cloud storage, and messaging apps." },
+              { title: "Mobile Friendly", description: "Optimized for mobile devices with intuitive touch controls." }
+            ]
+          },
+          howItWorks: {
+            title: "How It Works",
+            subtitle: "Simple steps to start working with PDF files",
+            steps: [
+              { title: "Download & Install", description: "Get the app from Google Play Store and install it on your device." },
+              { title: "Open PDF File", description: "Import your PDF files or create new ones directly in the app." },
+              { title: "Edit & Share", description: "Edit, sign, and manage your PDF files, then share them with others." }
+            ]
+          },
+          faq: {
+            title: "Frequently Asked Questions",
+            subtitle: "Find answers to common questions about Open PDF Reader",
+            sideTitle: "Need direct help?",
+            sideCopy: "Questions about privacy, signatures, or device support can go directly to the product team.",
+            sideDownload: "Get the Android app",
+            items: [
+              { question: "Is Open PDF Reader completely free?", answer: "Yes, Open PDF Reader is 100% free with no hidden costs, ads, or watermarks. All features are available for free." },
+              { question: "Can I edit PDF files for free?", answer: "Yes, you can edit text, images, and pages in PDF files completely free of charge." },
+              { question: "Is my data secure?", answer: "Yes, all your PDF files are stored locally on your device. We don't upload or access your files." },
+              { question: "What devices are supported?", answer: "Open PDF Reader is available for Android devices. We're working on iOS and web versions." },
+              { question: "How do I add signatures to PDF files?", answer: "You can add digital signatures by drawing with your finger or stylus, or by uploading an image of your signature." }
+            ]
+          },
+          cta: {
+            title: "Download Open PDF Reader Today",
+            subtitle: "100% free, minimal ads, no watermarks. Start editing and managing your PDF files now.",
+            button: "Download"
+          },
+          footer: {
+            tag: "Free editor and reader",
+            desc: "Free PDF editor and reader with signature support. Edit, sign, view and manage PDF files easily.",
+            links: {
+              quick: "Quick Links",
+              quickItems: ["Features", "How It Works", "FAQ", "Download"],
+              support: "Support",
+              supportItems: ["Help Center", "Privacy Policy", "Terms of Service"],
+              contact: "Contact Us",
+              app: "Android download"
+            },
+            copyright: "© {year} Open PDF Reader. All rights reserved.",
+            tagline: "Designed with care for researchers, students, and professionals worldwide."
+          }
+        },
+        Español: {
+          nav: { lang: "Español", tag: "Página estática oficial" },
+          hero: {
+            eyebrow: "100% gratis • sin marcas de agua",
+            title: "Editor de PDF Gratis",
+            titleAccent: "& Lector",
+            subtitle: "100% Gratis — Edite, firme, vea y gestione archivos PDF sin marcas de agua ni limitaciones.",
+            download: "Descargar",
+            secondary: "Funciones",
+            users: "De más de 10,000 usuarios satisfechos",
+            chips: {
+              leftTitle: "Sin marcas de agua",
+              leftSubtitle: "Exporte archivos limpios al instante",
+              rightTitle: "Editar, firmar, compartir",
+              rightSubtitle: "Un flujo claro para todas las tareas PDF"
+            }
+          },
+          features: {
+            title: "Potentes Herramientas PDF",
+            subtitle: "Todas las funciones que necesitas para trabajar con archivos PDF, completamente gratis.",
+            items: [
+              { title: "Editor PDF Gratis", description: "Edite texto, imágenes y páginas en sus archivos PDF con nuestro editor intuitivo - 100% gratis." },
+              { title: "Firma PDF Gratis", description: "Añada firmas digitales a sus documentos PDF de forma rápida y segura - sin coste." },
+              { title: "Visor PDF", description: "Vea archivos PDF con desplazamiento suave y funciones avanzadas de navegación." },
+              { title: "Gestor PDF", description: "Organice sus archivos PDF con carpetas, etiquetas y funcionalidad de búsqueda." },
+              { title: "Convertidor PDF", description: "Convierta archivos PDF a otros formatos y viceversa con alta calidad." },
+              { title: "Compartir Fácil", description: "Comparta archivos PDF por correo electrónico, almacenamiento en la nube y aplicaciones de mensajería." },
+              { title: "Amigable con Móviles", description: "Optimizado para dispositivos móviles con controles táctiles intuitivos." }
+            ]
+          },
+          howItWorks: {
+            title: "Cómo Funciona",
+            subtitle: "Pasos sencillos para empezar a trabajar con archivos PDF",
+            steps: [
+              { title: "Descargar e Instalar", description: "Obtenga la aplicación en Google Play Store e instálela en su dispositivo." },
+              { title: "Abrir Archivo PDF", description: "Importe sus archivos PDF o cree otros nuevos directamente en la aplicación." },
+              { title: "Editar y Compartir", description: "Edite, firme y gestione sus archivos PDF, y luego compártalos con otros." }
+            ]
+          },
+          faq: {
+            title: "Preguntas Frecuentes",
+            subtitle: "Encuentre respuestas a las preguntas comunes sobre Open PDF Reader",
+            sideTitle: "¿Necesita ayuda directa?",
+            sideCopy: "Las dudas sobre privacidad, firmas o compatibilidad pueden enviarse directamente al equipo del producto.",
+            sideDownload: "Obtener la app de Android",
+            items: [
+              { question: "¿Es Open PDF Reader completamente gratis?", answer: "Sí, Open PDF Reader es 100% gratis, sin costes ocultos, anuncios ni marcas de agua. Todas las funciones están disponibles gratis." },
+              { question: "¿Puedo editar archivos PDF gratis?", answer: "Sí, puede editar texto, imágenes y páginas en archivos PDF de forma totalmente gratuita." },
+              { question: "¿Son mis datos seguros?", answer: "Sí, todos sus archivos PDF se almacenan localmente en su dispositivo. No subimos ni accedemos a sus archivos." },
+              { question: "¿Qué dispositivos son compatibles?", answer: "Open PDF Reader está disponible para dispositivos Android. Estamos trabajando en versiones para iOS y web." },
+              { question: "¿Cómo añado firmas a los archivos PDF?", answer: "Puede añadir firmas digitales dibujando con el dedo o un lápiz óptico, o subiendo una imagen de su firma." }
+            ]
+          },
+          cta: {
+            title: "Descargue Open PDF Reader Hoy",
+            subtitle: "100% gratis, anuncios mínimos, sin marcas de agua. Empiece a editar y gestionar sus archivos PDF ahora.",
+            button: "Descargar"
+          },
+          footer: {
+            tag: "Editor y lector gratis",
+            desc: "Editor y lector de PDF gratuito con soporte para firmas. Edite, firme, vea y gestione archivos PDF fácilmente.",
+            links: {
+              quick: "Enlaces Rápidos",
+              quickItems: ["Funciones", "Cómo Funciona", "FAQ", "Descargar"],
+              support: "Soporte",
+              supportItems: ["Centro de Ayuda", "Política de Privacidad", "Términos de Servicio"],
+              contact: "Contáctenos",
+              app: "Descarga Android"
+            },
+            copyright: "© {year} Open PDF Reader. Todos los derechos reservados.",
+            tagline: "Diseñado con esmero para investigadores, estudiantes y profesionales de todo el mundo."
+          }
+        },
+        Français: {
+          nav: { lang: "Français", tag: "Page officielle statique" },
+          hero: {
+            eyebrow: "100% gratuit • sans filigrane",
+            title: "Éditeur PDF Gratuit",
+            titleAccent: "& Lecteur",
+            subtitle: "100% Gratuit — Modifiez, signez, visualisez et gérez des fichiers PDF sans filigrane ni limitation.",
+            download: "Télécharger",
+            secondary: "Fonctionnalités",
+            users: "Par plus de 10 000 utilisateurs satisfaits",
+            chips: {
+              leftTitle: "Sans filigrane",
+              leftSubtitle: "Exportez des fichiers propres instantanément",
+              rightTitle: "Modifier, signer, partager",
+              rightSubtitle: "Un flux simple pour toutes les tâches PDF"
+            }
+          },
+          features: {
+            title: "Outils PDF Puissants",
+            subtitle: "Toutes les fonctionnalités dont vous avez besoin pour travailler avec des fichiers PDF, entièrement gratuites.",
+            items: [
+              { title: "Éditeur PDF Gratuit", description: "Modifiez le texte, les images et les pages de vos fichiers PDF avec notre éditeur intuitif - 100% gratuit." },
+              { title: "Signature PDF Gratuite", description: "Ajoutez des signatures numériques à vos documents PDF rapidement et en toute sécurité - sans frais." },
+              { title: "Lecteur PDF", description: "Visualisez les fichiers PDF avec un défilement fluide et des fonctions de navigation avancées." },
+              { title: "Gestionnaire PDF", description: "Organisez vos fichiers PDF avec des dossiers, des étiquettes et une fonction de recherche." },
+              { title: "Convertisseur PDF", description: "Convertissez des fichiers PDF vers d'autres formats et vice-versa avec une haute qualité." },
+              { title: "Partage Facile", description: "Partagez des fichiers PDF par e-mail, stockage cloud et applications de messagerie." },
+              { title: "Optimisé Mobiles", description: "Optimisé pour les appareils mobiles avec des commandes tactiles intuitives." }
+            ]
+          },
+          howItWorks: {
+            title: "Comment ça marche",
+            subtitle: "Des étapes simples pour commencer à travailler avec des fichiers PDF",
+            steps: [
+              { title: "Télécharger & Installer", description: "Obtenez l'application sur le Google Play Store et installez-la sur votre appareil." },
+              { title: "Ouvrir un Fichier PDF", description: "Importez vos fichiers PDF ou créez-en de nouveaux directement dans l'application." },
+              { title: "Modifier & Partager", description: "Modifiez, signez et gérez vos fichiers PDF, puis partagez-les avec d'autres." }
+            ]
+          },
+          faq: {
+            title: "Foire Aux Questions",
+            subtitle: "Trouvez des réponses aux questions courantes sur Open PDF Reader",
+            sideTitle: "Besoin d'une aide directe ?",
+            sideCopy: "Les questions sur la confidentialité, les signatures ou la compatibilité peuvent être envoyées directement à l'équipe produit.",
+            sideDownload: "Obtenir l'application Android",
+            items: [
+              { question: "Open PDF Reader est-il totalement gratuit ?", answer: "Oui, Open PDF Reader est 100% gratuit, sans frais cachés, publicités ou filigranes. Toutes les fonctionnalités sont disponibles gratuitement." },
+              { question: "Puis-je modifier des fichiers PDF gratuitement ?", answer: "Oui, vous pouvez modifier le texte, les images et les pages des fichiers PDF tout à fait gratuitement." },
+              { question: "Mes données sont-elles en sécurité ?", answer: "Oui, tous vos fichiers PDF sont stockés localement sur votre appareil. Nous ne téléchargeons ni n'accédons à vos fichiers." },
+              { question: "Quels appareils sont pris en charge ?", answer: "Open PDF Reader est disponible pour les appareils Android. Nous travaillons sur des versions iOS et Web." },
+              { question: "Comment ajouter des signatures aux fichiers PDF ?", answer: "Vous pouvez ajouter des signatures numériques en dessinant avec votre doigt ou un stylet, ou en téléchargeant une image de votre signature." }
+            ]
+          },
+          cta: {
+            title: "Téléchargez Open PDF Reader aujourd'hui",
+            subtitle: "100% gratuit, publicités minimales, pas de filigrane. Commencez à modifier et gérer vos fichiers PDF dès maintenant.",
+            button: "Télécharger"
+          },
+          footer: {
+            tag: "Éditeur et lecteur gratuit",
+            desc: "Éditeur et lecteur PDF gratuit avec prise en charge des signatures. Modifiez, signez, visualisez et gérez facilement vos fichiers PDF.",
+            links: {
+              quick: "Liens Rapides",
+              quickItems: ["Fonctionnalités", "Comment ça marche", "FAQ", "Télécharger"],
+              support: "Support",
+              supportItems: ["Centre d'Aide", "Politique de Confidentialité", "Conditions d'Utilisation"],
+              contact: "Contactez-nous",
+              app: "Téléchargement Android"
+            },
+            copyright: "© {year} Open PDF Reader. Tous droits réservés.",
+            tagline: "Conçu avec soin pour les chercheurs, les étudiants et les professionnels du monde entier."
+          }
+        },
+        中文: {
+          nav: { lang: "中文", tag: "静态官网单页" },
+          hero: {
+            eyebrow: "100% 免费 • 无水印",
+            title: "免费 PDF 编辑器",
+            titleAccent: "& 阅读器",
+            subtitle: "100% 免费 — 编辑、签名、查看和管理 PDF 文件，无水印，无限制。",
+            download: "下载",
+            secondary: "功能",
+            users: "深受 10,000+ 名用户的信赖",
+            chips: {
+              leftTitle: "无水印导出",
+              leftSubtitle: "干净文件可直接分享",
+              rightTitle: "编辑、签名、分享",
+              rightSubtitle: "一个流程完成 PDF 常用操作"
+            }
+          },
+          features: {
+            title: "强大的 PDF 工具",
+            subtitle: "处理 PDF 文件所需的所有功能，完全免费。",
+            items: [
+              { title: "免费 PDF 编辑器", description: "使用我们直观的编辑器编辑 PDF 文件中的文本、图像和页面 - 100% 免费。" },
+              { title: "免费 PDF 签名", description: "快速安全地为 PDF 文档添加数字签名 - 无需任何费用。" },
+              { title: "PDF 阅读器", description: "通过流畅的滚动和高级导航功能查看 PDF 文件。" },
+              { title: "PDF 管理器", description: "使用文件夹、标签和搜索功能组织您的 PDF 文件。" },
+              { title: "PDF 转换器", description: "高质量地将 PDF 文件转换为其他格式，反之亦然。" },
+              { title: "轻松分享", description: "通过电子邮件、云存储和消息应用分享 PDF 文件。" },
+              { title: "移动端友好", description: "针对移动设备进行了优化，具有直观的触摸控制。" }
+            ]
+          },
+          howItWorks: {
+            title: "使用方法",
+            subtitle: "开始处理 PDF 文件的简单步骤",
+            steps: [
+              { title: "下载并安装", description: "从 Google Play 商店获取该应用并安装到您的设备上。" },
+              { title: "打开 PDF 文件", description: "导入您的 PDF 文件或直接在应用中创建新文件。" },
+              { title: "编辑并分享", description: "编辑、签名和管理您的 PDF 文件，然后与他人分享。" }
+            ]
+          },
+          faq: {
+            title: "常见问题解答",
+            subtitle: "查找有关 Open PDF Reader 常见问题的答案",
+            sideTitle: "需要直接支持？",
+            sideCopy: "如果你想确认隐私、签名方式或设备兼容性，可以直接联系产品团队。",
+            sideDownload: "获取 Android 应用",
+            items: [
+              { question: "Open PDF Reader 完全免费吗？", answer: "是的，Open PDF Reader 是 100% 免费的，没有隐藏费用、广告或水印。所有功能均可免费使用。" },
+              { question: "我可以免费编辑 PDF 文件吗？", answer: "是的，您可以完全免费编辑 PDF 文件中的文本、图像和页面。" },
+              { question: "我的数据安全吗？", answer: "是的，您所有的 PDF 文件都存储在本地设备上。我们不会上传或访问您的文件。" },
+              { question: "支持哪些设备？", answer: "Open PDF Reader 适用于 Android 设备。我们正在开发 iOS 和网页版。" },
+              { question: "如何为 PDF 文件添加签名？", answer: "您可以通过用手指或手写笔绘画，或者上传您的签名图像来添加数字签名。" }
+            ]
+          },
+          cta: {
+            title: "立即下载 Open PDF Reader",
+            subtitle: "100% 免费，极少广告，无水印。现在就开始编辑和管理您的 PDF 文件。",
+            button: "下载"
+          },
+          footer: {
+            tag: "免费编辑与阅读",
+            desc: "支持签名功能的免费 PDF 编辑器和阅读器。轻松编辑、签名、查看和管理 PDF 文件。",
+            links: {
+              quick: "快速链接",
+              quickItems: ["功能", "使用方法", "常见问题", "下载"],
+              support: "支持",
+              supportItems: ["帮助中心", "隐私政策", "服务条款"],
+              contact: "联系我们",
+              app: "Android 下载"
+            },
+            copyright: "© {year} Open PDF Reader。保留所有权利。",
+            tagline: "悉心为全球研究人员、学生和专业人士设计。"
+          }
+        },
+        日本語: {
+          nav: { lang: "日本語", tag: "静的公式ページ" },
+          hero: {
+            eyebrow: "100% 無料 • 透かしなし",
+            title: "無料 PDF エディタ",
+            titleAccent: "& リーダー",
+            subtitle: "100% 無料 — 透かしや制限なしで PDF ファイルを編集、署名、表示、管理できます。",
+            download: "ダウンロード",
+            secondary: "機能",
+            users: "10,000 人以上の満足したユーザーから",
+            chips: {
+              leftTitle: "透かしなし",
+              leftSubtitle: "きれいなファイルをすぐ書き出し",
+              rightTitle: "編集、署名、共有",
+              rightSubtitle: "PDF 作業をひとつの流れで完結"
+            }
+          },
+          features: {
+            title: "強力な PDF ツール",
+            subtitle: "PDF ファイルの操作に必要なすべての機能が完全に無料です。",
+            items: [
+              { title: "無料 PDF エディタ", description: "直感的なエディタで PDF ファイルのテキスト、画像、ページを編集できます - 100% 無料。" },
+              { title: "無料 PDF 署名", description: "PDF ドキュメントにデジタル署名を迅速かつ安全に追加できます - 費用はかかりません。" },
+              { title: "PDF ビューア", description: "スムーズなスクロールと高度なナビゲーション機能で PDF ファイルを表示します。" },
+              { title: "PDF マネージャ", description: "フォルダ、タグ、検索機能を使用して PDF ファイルを整理します。" },
+              { title: "PDF コンバータ", description: "PDF ファイルを高画質で他の形式に変換したり、その逆も可能です。" },
+              { title: "簡単な共有", description: "メール、クラウド ストレージ、メッセージング アプリを介して PDF ファイルを共有します。" },
+              { title: "モバイル対応", description: "直感的なタッチ コントロールにより、モバイル デバイス向けに最適化されています。" }
+            ]
+          },
+          howItWorks: {
+            title: "使い方",
+            subtitle: "PDF ファイルの操作を開始するための簡単なステップ",
+            steps: [
+              { title: "ダウンロードとインストール", description: "Google Play ストアからアプリを入手して、デバイスにインストールします。" },
+              { title: "PDF ファイルを開く", description: "PDF ファイルをインポートするか、アプリ内で直接新規作成します。" },
+              { title: "編集と共有", description: "PDF ファイルを編集、署名、管理して、他のユーザーと共有します。" }
+            ]
+          },
+          faq: {
+            title: "よくある質問",
+            subtitle: "Open PDF Reader に関する一般的な質問への回答をご覧ください",
+            sideTitle: "直接サポートが必要ですか？",
+            sideCopy: "プライバシー、署名方法、対応端末については、製品チームへ直接お問い合わせいただけます。",
+            sideDownload: "Android アプリを入手",
+            items: [
+              { question: "Open PDF Reader は完全に無料ですか？", answer: "はい、Open PDF Reader は 100% 無料で、隠れた費用、広告、透かしはありません。すべての機能を無料で利用できます。" },
+              { question: "PDF ファイルを無料で編集できますか？", answer: "はい、PDF ファイルのテキスト、画像、ページを完全に無料で編集できます。" },
+              { question: "データは安全ですか？", answer: "はい、すべての PDF ファイルはデバイスにローカルに保存されます。ファイルをアップロードしたり、アクセスしたりすることはありません。" },
+              { question: "どのデバイスがサポートされていますか？", answer: "Open PDF Reader は Android デバイスで利用可能です。iOS 版と Web 版も開発中です。" },
+              { question: "PDF ファイルに署名を追加するにはどうすればよいですか？", answer: "指やスタイラスで描画するか、署名の画像をアップロードしてデジタル署名を追加できます。" }
+            ]
+          },
+          cta: {
+            title: "今すぐ Open PDF Reader をダウンロード",
+            subtitle: "100% 無料、最小限の広告、透かしなし。今すぐ PDF ファイルの編集と管理を開始しましょう。",
+            button: "ダウンロード"
+          },
+          footer: {
+            tag: "無料編集と閲覧",
+            desc: "署名対応の無料 PDF エディタおよびリーダー。PDF ファイルの編集、署名、表示、管理を簡単に行えます。",
+            links: {
+              quick: "クイックリンク",
+              quickItems: ["機能", "使い方", "よくある質問", "ダウンロード"],
+              support: "サポート",
+              supportItems: ["ヘルプセンター", "プライバシーポリシー", "利用規約"],
+              contact: "お問い合わせ",
+              app: "Android ダウンロード"
+            },
+            copyright: "© {year} Open PDF Reader. All rights reserved.",
+            tagline: "世界中の研究者、学生、専門家のために心を込めて設計されました。"
+          }
+        }
+      };
+
+      const FEATURE_ICONS = [
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5H14L19 10V19H5V5Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M14 5V10H19" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M8 14H16M8 10H11M8 18H13" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 18C7.5 13.5 10 11.25 12.5 11.25C15 11.25 17.1667 13.5 19 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M5.5 9.5C7.3 8.5 8.8 8 10 8C11.8 8 13 9.2 13 11V18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 6V8.5M14.75 7.25H17.25" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12C4.8 7.7 8.1 5.5 12 5.5C15.9 5.5 19.2 7.7 21.5 12C19.2 16.3 15.9 18.5 12 18.5C8.1 18.5 4.8 16.3 2.5 12Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.8" stroke="currentColor" stroke-width="1.9"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.5 7.5H9.5L11.5 9.5H20.5V18.5H3.5V7.5Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M3.5 10H20.5" stroke="currentColor" stroke-width="1.9"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 4H7V20H17V7L14 4Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M14 4V7H17" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M10 12L12 14L15 10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 6H18V10M10 18H6V14M18 6L13 11M6 18L11 13" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18C15.3137 18 18 15.3137 18 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="7" y="2.8" width="10" height="18.4" rx="2.6" stroke="currentColor" stroke-width="1.9"/><path d="M10 6H14M11.2 18.2H12.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>'
+      ];
+
+      const elements = {
+        nav: document.getElementById("site-nav"),
+        langSwitch: document.getElementById("lang-switch"),
+        langButton: document.getElementById("lang-button"),
+        langMenu: document.getElementById("lang-menu"),
+        currentLanguage: document.getElementById("current-language"),
+        navBrandTag: document.getElementById("nav-brand-tag"),
+        footerBrandTag: document.getElementById("footer-brand-tag"),
+        navDownloadText: document.getElementById("nav-download-text"),
+        heroEyebrow: document.getElementById("hero-eyebrow"),
+        heroTitleMain: document.getElementById("hero-title-main"),
+        heroTitleAccent: document.getElementById("hero-title-accent"),
+        heroSubtitle: document.getElementById("hero-subtitle"),
+        heroDownloadText: document.getElementById("hero-download-text"),
+        heroSecondaryText: document.getElementById("hero-secondary-text"),
+        heroUsersText: document.getElementById("hero-users-text"),
+        chipLeftTitle: document.getElementById("chip-left-title"),
+        chipLeftSubtitle: document.getElementById("chip-left-subtitle"),
+        chipRightTitle: document.getElementById("chip-right-title"),
+        chipRightSubtitle: document.getElementById("chip-right-subtitle"),
+        featuresTitle: document.getElementById("features-title"),
+        featuresSubtitle: document.getElementById("features-subtitle"),
+        featuresGrid: document.getElementById("features-grid"),
+        howTitle: document.getElementById("how-title"),
+        howSubtitle: document.getElementById("how-subtitle"),
+        stepsGrid: document.getElementById("steps-grid"),
+        faqTitle: document.getElementById("faq-title"),
+        faqSubtitle: document.getElementById("faq-subtitle"),
+        faqList: document.getElementById("faq-list"),
+        ctaTitle: document.getElementById("cta-title"),
+        ctaSubtitle: document.getElementById("cta-subtitle"),
+        ctaButtonText: document.getElementById("cta-button-text"),
+        footerDescription: document.getElementById("footer-description"),
+        footerQuickTitle: document.getElementById("footer-quick-title"),
+        footerSupportTitle: document.getElementById("footer-support-title"),
+        footerSupportList: document.getElementById("footer-support-list"),
+        footerContactTitle: document.getElementById("footer-contact-title"),
+        footerContactApp: document.getElementById("footer-contact-app"),
+        footerTagline: document.getElementById("footer-tagline"),
+        footerCopyright: document.getElementById("footer-copyright"),
+        desktopNavLinks: document.querySelectorAll("[data-nav-index]"),
+        mobileNavLinks: document.querySelectorAll("[data-mobile-nav-index]"),
+        footerQuickLinks: document.querySelectorAll("[data-footer-quick-index]"),
+        mobileDownloadLink: document.getElementById("mobile-download-link"),
+        mobileNav: document.getElementById("mobile-nav"),
+        mobileToggle: document.getElementById("mobile-toggle"),
+        langOptions: document.querySelectorAll(".lang-option")
+      };
+
+      const year = new Date().getFullYear();
+      let activeLang = "English";
+
+      function renderFeatures(items) {
+        elements.featuresGrid.innerHTML = items
+          .map((item, index) => {
+            return `
+              <article class="feature-card">
+                <div class="feature-icon">${FEATURE_ICONS[index] || FEATURE_ICONS[0]}</div>
+                <h3 class="feature-title">${item.title}</h3>
+                <p class="feature-description">${item.description}</p>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      function renderSteps(steps) {
+        elements.stepsGrid.innerHTML = steps
+          .map((step, index) => {
+            return `
+              <article class="step-card">
+                <span class="step-number">${index + 1}</span>
+                <h3 class="step-title">${step.title}</h3>
+                <p class="step-description">${step.description}</p>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      function renderFaq(items) {
+        elements.faqList.innerHTML = items
+          .map((item, index) => {
+            const isOpen = index === 0 ? " open" : "";
+            return `
+              <details class="faq-item"${isOpen}>
+                <summary>${item.question}</summary>
+                <div class="faq-answer">${item.answer}</div>
+              </details>
+            `;
+          })
+          .join("");
+      }
+
+      function renderFooterSupport(items) {
+        elements.footerSupportList.innerHTML = items
+          .map((item) => `<li><a href="#">${item}</a></li>`)
+          .join("");
+      }
+
+      function applyLanguage(lang) {
+        activeLang = lang;
+        const t = TRANSLATIONS[lang] || TRANSLATIONS.English;
+
+        elements.currentLanguage.textContent = t.nav.lang;
+        elements.navBrandTag.textContent = t.nav.tag;
+        elements.footerBrandTag.textContent = t.footer.tag;
+        elements.navDownloadText.textContent = t.hero.download;
+        elements.heroEyebrow.textContent = t.hero.eyebrow;
+        elements.heroTitleMain.textContent = t.hero.title;
+        elements.heroTitleAccent.textContent = t.hero.titleAccent;
+        elements.heroSubtitle.textContent = t.hero.subtitle;
+        elements.heroDownloadText.textContent = t.hero.download;
+        elements.heroSecondaryText.textContent = t.hero.secondary;
+        elements.heroUsersText.textContent = t.hero.users;
+        elements.chipLeftTitle.textContent = t.hero.chips.leftTitle;
+        elements.chipLeftSubtitle.textContent = t.hero.chips.leftSubtitle;
+        elements.chipRightTitle.textContent = t.hero.chips.rightTitle;
+        elements.chipRightSubtitle.textContent = t.hero.chips.rightSubtitle;
+        elements.featuresTitle.textContent = t.features.title;
+        elements.featuresSubtitle.textContent = t.features.subtitle;
+        elements.howTitle.textContent = t.howItWorks.title;
+        elements.howSubtitle.textContent = t.howItWorks.subtitle;
+        elements.faqTitle.textContent = t.faq.title;
+        elements.faqSubtitle.textContent = t.faq.subtitle;
+        elements.ctaTitle.textContent = t.cta.title;
+        elements.ctaSubtitle.textContent = t.cta.subtitle;
+        elements.ctaButtonText.textContent = t.cta.button;
+        elements.footerDescription.textContent = t.footer.desc;
+        elements.footerQuickTitle.textContent = t.footer.links.quick;
+        elements.footerSupportTitle.textContent = t.footer.links.support;
+        elements.footerContactTitle.textContent = t.footer.links.contact;
+        elements.footerContactApp.textContent = t.footer.links.app;
+        elements.footerTagline.textContent = t.footer.tagline;
+        elements.footerCopyright.textContent = t.footer.copyright.replace("{year}", year);
+        elements.mobileDownloadLink.textContent = t.hero.download;
+
+        elements.desktopNavLinks.forEach((link) => {
+          const index = Number(link.dataset.navIndex);
+          link.textContent = t.footer.links.quickItems[index];
+        });
+
+        elements.mobileNavLinks.forEach((link) => {
+          const index = Number(link.dataset.mobileNavIndex);
+          link.textContent = t.footer.links.quickItems[index];
+        });
+
+        elements.footerQuickLinks.forEach((link) => {
+          const index = Number(link.dataset.footerQuickIndex);
+          link.textContent = t.footer.links.quickItems[index];
+        });
+
+        renderFeatures(t.features.items);
+        renderSteps(t.howItWorks.steps);
+        renderFaq(t.faq.items);
+        renderFooterSupport(t.footer.links.supportItems);
+
+        elements.langOptions.forEach((option) => {
+          option.classList.toggle("is-active", option.dataset.lang === lang);
+        });
+      }
+
+      function closeLanguageMenu() {
+        elements.langSwitch.classList.remove("is-open");
+        elements.langButton.setAttribute("aria-expanded", "false");
+      }
+
+      function toggleLanguageMenu() {
+        const willOpen = !elements.langSwitch.classList.contains("is-open");
+        elements.langSwitch.classList.toggle("is-open", willOpen);
+        elements.langButton.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      }
+
+      function closeMobileNav() {
+        elements.mobileNav.classList.remove("is-open");
+        elements.mobileToggle.setAttribute("aria-expanded", "false");
+      }
+
+      function toggleMobileNav() {
+        const willOpen = !elements.mobileNav.classList.contains("is-open");
+        elements.mobileNav.classList.toggle("is-open", willOpen);
+        elements.mobileToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      }
+
+      elements.langButton.addEventListener("click", toggleLanguageMenu);
+      elements.mobileToggle.addEventListener("click", toggleMobileNav);
+
+      elements.langOptions.forEach((option) => {
+        option.addEventListener("click", () => {
+          applyLanguage(option.dataset.lang);
+          closeLanguageMenu();
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!elements.langSwitch.contains(event.target)) {
+          closeLanguageMenu();
+        }
+        if (!elements.mobileNav.contains(event.target)) {
+          closeMobileNav();
+        }
+      });
+
+      document.querySelectorAll('a[href^="#"]').forEach((link) => {
+        link.addEventListener("click", () => {
+          closeLanguageMenu();
+          closeMobileNav();
+        });
+      });
+
+      window.addEventListener("scroll", () => {
+        elements.nav.classList.toggle("is-scrolled", window.scrollY > 36);
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        {
+          threshold: 0.18
+        }
+      );
+
+      document.querySelectorAll(".reveal").forEach((section, index) => {
+        if (index === 0) return;
+        observer.observe(section);
+      });
+
+      applyLanguage(activeLang);
+    </script>
+  </body>
+</html>
